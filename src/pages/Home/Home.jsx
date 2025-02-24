@@ -16,16 +16,82 @@ import {
   Sensors,
   Settings,
   Dashboard,
-  Menu,
   Opacity,
   ArrowForwardIos,
   ExpandMore,
 } from "@mui/icons-material";
 import "../Home/Home.css";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useEffect } from "react";
+import { getSensor } from "../../utils/api";
+import { differenceInMinutes, differenceInHours } from "date-fns";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("Dashboard");
+  const [data, setData] = useState();
+  async function getData() {
+    const response = await getSensor();
+    setData(response);
+  }
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      getData();
+    }, 20 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const sensor = useMemo(() => {
+    {
+      if (!data || data.length === 0) return [];
+      console.log("data", data);
+
+      const latestData = data;
+      console.log("latestData", latestData.id);
+      const sensorDateTime = new Date(latestData.createdAt);
+      const now = new Date();
+
+      // 🔹 Calculando diferença em minutos e horas
+      const diffMinutes = differenceInMinutes(now, sensorDateTime);
+      const diffHours = differenceInHours(now, sensorDateTime);
+
+      // 🔹 Gerando a string de tempo dinâmica
+      let timeAgo;
+      if (diffMinutes < 60) {
+        timeAgo = `Há ${diffMinutes} minutos`;
+      } else {
+        timeAgo = `Há ${diffHours} horas`;
+      }
+
+      return [
+        {
+          title: "PH",
+          value: `${latestData.pH.toFixed(2)} pH`,
+          icon: <WaterDrop sx={{ fontSize: 40, color: "#007BFF" }} />,
+          time: timeAgo,
+        },
+        {
+          title: "Turbidez",
+          value: `${latestData.Turbidez.toFixed(2)} NTU`,
+          icon: <Visibility sx={{ fontSize: 40, color: "#000" }} />,
+          time: timeAgo,
+        },
+        {
+          title: "TDS",
+          value: `${latestData.TDS.toFixed(2)} mg/L`,
+          icon: <Sensors sx={{ fontSize: 40, color: "#007BFF" }} />,
+          time: timeAgo,
+        },
+        {
+          title: "Bateria",
+          value: `${((latestData.BaterySlave / 4.2) * 100).toFixed(2)}%`, // Convertendo a voltagem para porcentagem
+          icon: <BatteryFull sx={{ fontSize: 40, color: "#28a745" }} />,
+          time: timeAgo,
+        },
+      ];
+    }
+  }, [data]);
+  console.log("sensor", sensor);
   return (
     <>
       <Box
@@ -143,32 +209,7 @@ export default function Home() {
                 gap: "50px",
               }}
             >
-              {[
-                {
-                  title: "PH",
-                  value: "7.1 pH",
-                  icon: <WaterDrop sx={{ fontSize: 40, color: "#007BFF" }} />,
-                  time: "Há 30 minutos",
-                },
-                {
-                  title: "Turbidez",
-                  value: "0.5 ntu",
-                  icon: <Visibility sx={{ fontSize: 40, color: "#000" }} />,
-                  time: "Há 30 minutos",
-                },
-                {
-                  title: "TDS",
-                  value: "200 mg/L",
-                  icon: <Sensors sx={{ fontSize: 40, color: "#007BFF" }} />,
-                  time: "Há 30 minutos",
-                },
-                {
-                  title: "Bateria",
-                  value: "67%",
-                  icon: <BatteryFull sx={{ fontSize: 40, color: "#28a745" }} />,
-                  time: "Há 30 minutos",
-                },
-              ].map((item, index) => (
+              {sensor.map((item, index) => (
                 <Card
                   key={index}
                   sx={{
