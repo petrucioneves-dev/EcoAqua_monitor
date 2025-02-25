@@ -25,6 +25,8 @@ import { useMemo, useState } from "react";
 import { useEffect } from "react";
 import { getSensor } from "../../utils/api";
 import { differenceInMinutes, differenceInHours } from "date-fns";
+import MonitoringCards from "../../components/MonitoringCards/MonitoringCards";
+import HistoryTable from "../../components/HistoryTable/HistoryTable";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -35,11 +37,15 @@ export default function Home() {
   }
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    if (data === null) {
       getData();
-    }, 20 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    } else {
+      const interval = setInterval(() => {
+        getData();
+      }, 20 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [data]);
 
   const sensor = useMemo(() => {
     {
@@ -51,11 +57,9 @@ export default function Home() {
       const sensorDateTime = new Date(latestData.createdAt);
       const now = new Date();
 
-      // 🔹 Calculando diferença em minutos e horas
       const diffMinutes = differenceInMinutes(now, sensorDateTime);
       const diffHours = differenceInHours(now, sensorDateTime);
 
-      // 🔹 Gerando a string de tempo dinâmica
       let timeAgo;
       if (diffMinutes < 60) {
         timeAgo = `Há ${diffMinutes} minutos`;
@@ -191,70 +195,8 @@ export default function Home() {
               </Box>
             ))}
           </Box>
-          {/* dados */}
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "20px",
-            }}
-          >
-            {/* 4 cards  */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "50px",
-              }}
-            >
-              {sensor.map((item, index) => (
-                <Card
-                  key={index}
-                  sx={{
-                    p: 3,
-                    borderRadius: "16px",
-                    boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
-                    bgcolor: "white",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1,
-                    width: "500px",
-                    height: "180px",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                      {item.title}
-                    </Typography>
-                    <IconButton>{item.icon}</IconButton>
-                  </Box>
-                  <Typography
-                    variant="h4"
-                    sx={{ fontWeight: "bold", color: "#2c3e50" }}
-                  >
-                    {item.value}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {item.time}
-                  </Typography>
-                  <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                    <IconButton>
-                      <ArrowForwardIos sx={{ fontSize: 18, color: "#bbb" }} />
-                    </IconButton>
-                  </Box>
-                </Card>
-              ))}
-            </Box>
-          </Box>
-
+          {activeTab === "Dashboard" && <MonitoringCards sensor={sensor} />}
+          {activeTab === "pH" && <HistoryTable />}
           <Box
             sx={{
               display: "flex",
